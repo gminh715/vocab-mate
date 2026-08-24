@@ -10,8 +10,8 @@ rules with bounded, schema-validated AI assistance.
 
 The source code is split across two repositories:
 
-- [Vocab Mate Frontend](https://github.com/gminh715/vocab-mate-frontend) — React web application
-- [Vocab Mate Backend](https://github.com/gminh715/vocab-mate-backend) — NestJS REST API and learning engine
+- [Vocab Mate Frontend](https://github.com/gminh715/vocab-mate-frontend)
+- [Vocab Mate Backend](https://github.com/gminh715/vocab-mate-backend)
 
 ## Product overview
 
@@ -63,27 +63,27 @@ available at `http://localhost:3000/api/docs` when the backend is running.
 
 ## Content acquisition, analysis, and publication pipeline
 
-News ingestion and publication are deliberately separate. Import and analysis
-can only prepare a draft; publishing always requires an explicit administrator
-action after the shared validation checklist passes.
+The diagram presents ingestion, analysis, validation, and publication as one
+automated orchestration. Human approval and operational control points are
+intentionally omitted from this system-level view.
 
 ```mermaid
 flowchart TD
-    A["Admin searches news<br/>GET /admin/news/search"] --> B["Guardian Content API<br/>metadata fields only"]
-    B --> C["Admin selects articles and syncs<br/>POST /admin/news/sync"]
-    C --> D["Fetch selected bodies through Guardian /search<br/>fields.body, maximum 10 per request"]
+    A["Scheduled or event-driven ingestion trigger"] --> B["Discover Guardian articles<br/>metadata fields only"]
+    B --> C["Apply source, topic, date, and category policies"]
+    C --> D["Fetch eligible article bodies through Guardian /search<br/>fields.body, maximum 10 per request"]
     D --> E["Normalize metadata and canonical URLs"]
     E --> F{"Already imported?<br/>provider ID, canonical URL, or content hash"}
-    F -- Yes --> G["Report skippedDuplicate<br/>without changing existing content"]
+    F -- Yes --> G["Record skippedDuplicate<br/>and continue the batch"]
     F -- No --> H["Validate the body and sanitize HTML<br/>with the backend allowlist"]
-    H --> I["Create a DRAFT article"]
-    I --> J["Parse visible reading text<br/>store sentence rows and data-sentence-id markers"]
-    J --> K["Admin runs local analysis<br/>WinkNLP + cefr-analyzer"]
+    H --> I["Create a versioned DRAFT article"]
+    I --> J["Parse visible reading text automatically<br/>store sentence rows and data-sentence-id markers"]
+    J --> K["Run local vocabulary analysis<br/>WinkNLP + cefr-analyzer"]
     K --> L["Set article CEFR and create contextual NLP terms<br/>with stable data-term-id markers"]
-    L --> M["Admin edits, moderates, and previews"]
-    M --> N{"Publication checklist passes?"}
-    N -- No --> M
-    N -- Yes --> O["Explicit admin publish<br/>POST /admin/articles/:articleId/publish"]
+    L --> M["Run automated content, marker,<br/>metadata, and consistency checks"]
+    M --> N{"All publication policies pass?"}
+    N -- No --> Q["Retain the draft, record diagnostics,<br/>and stop this pipeline item"]
+    N -- Yes --> O["Atomically transition the article to PUBLISHED"]
     O --> P["PUBLISHED article becomes available to readers"]
 ```
 
@@ -117,12 +117,12 @@ correctness, scores, intervals, or authorization decisions.
 
 ```mermaid
 flowchart TD
-    A["Start or resume review<br/>daily, article, collection, or quiz"] --> B{"Matching active session?"}
+    A["Review trigger or persisted-session resume<br/>daily, article, collection, or quiz"] --> B{"Matching active session?"}
     B -- Yes --> C["Restore the persisted session"]
     B -- No --> D["Select eligible saved vocabulary<br/>by owner, source, due state, and learning status"]
     D --> E["Choose question types deterministically<br/>from goal, status, and recent accuracy"]
-    E --> F{"Published quiz session?"}
-    F -- Yes --> G["Use active admin-authored quiz questions"]
+    E --> F{"Quiz-backed session?"}
+    F -- Yes --> G["Use active curated quiz questions"]
     F -- No --> H{"Versioned AI question cached?"}
     H -- Yes --> I["Reuse the cached question"]
     H -- No --> J["Generate structured question batches<br/>Gemini, then eligible Groq fallback"]
@@ -134,7 +134,7 @@ flowchart TD
     M --> N
     C --> O["Serve one question<br/>with optional progressive hints"]
     N --> O
-    O --> P["Learner answers or skips"]
+    O --> P["Capture answer, skip, hint,<br/>and response-time signals"]
     P --> Q["Server grades, infers score 0-5,<br/>and schedules the next review in 1-60 days"]
     Q --> R{"Incorrect and eligible<br/>for one delayed retry?"}
     R -- No --> S{"Pending items remain?"}
@@ -429,5 +429,4 @@ authorization, correctness, or direct database actions.
 ## License
 
 This project is private and currently unlicensed (`UNLICENSED`).
-
 
