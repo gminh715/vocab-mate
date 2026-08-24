@@ -67,7 +67,7 @@ flowchart TD
     A["Daily review trigger"] --> B["Load due vocabulary count"]
     B --> C{"Active daily session?"}
     C -- Yes --> D["Restore persisted session"]
-    C -- No --> E["Select eligible due vocabulary"]
+    C -- No --> E["Prioritize due vocabulary<br/>overdue → unscheduled → new"]
     E --> F["Choose question types<br/>from goal and history"]
     F --> G["Load versioned question cache"]
     G --> H{"Questions missing?"}
@@ -94,6 +94,21 @@ flowchart TD
     Q -- Yes --> M
     Q -- No --> X["Complete daily summary<br/>+ skill feedback"]
 ```
+
+### ⏰ Due-vocabulary recommendation
+
+A saved item is eligible when it belongs to the current user, has status `NEW`,
+`LEARNING`, or `REVIEWING`, and `nextReviewAt <= now` or is `null`.
+
+Priority order:
+
+1. Overdue items: more lapses first, then the oldest due date.
+2. Unscheduled `LEARNING`/`REVIEWING` items: more lapses, then oldest saved.
+3. Unscheduled `NEW` items: more lapses, then oldest saved.
+
+Daily Review uses the full due count. After each response, the server infers a
+score from `0–5` and sets the next interval from `1–60` days. `MASTERED` and
+`IGNORED` items are excluded from this queue.
 
 - The session covers eligible due vocabulary and resumes after refresh or navigation.
 - Questions use a versioned AI cache; missing items are generated before commit.
