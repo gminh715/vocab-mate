@@ -8,8 +8,8 @@ learning rules plus bounded AI assistance.
 
 ## 🔗 Repositories
 
-| Repository | Purpose |
-| --- | --- |
+| Repository |
+| --- |
 | [Frontend](https://github.com/gminh715/vocab-mate-frontend) |
 | [Backend](https://github.com/gminh715/vocab-mate-backend) |
 ## ✨ Highlights
