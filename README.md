@@ -58,27 +58,27 @@ flowchart TD
 - First lookup lazily enriches pending terms through Gemini, then eligible Groq fallback.
 - Saved vocabulary remains unchanged if source-term metadata later changes.
 
-## 🤖 Agentic review pipeline
+## 🤖 Daily agentic review pipeline
 
-*System decisions are shown; user interaction is represented only as input signals.*
+*Only `DAILY_REVIEW` is shown; interaction appears only as input signals.*
 
 ```mermaid
 flowchart TD
-    A["Review trigger or resume"] --> B{"Active session?"}
-    B -- Yes --> C["Restore session"]
-    B -- No --> D["Select eligible vocabulary"]
-    D --> E["Choose question types<br/>from goal and history"]
-    E --> F{"Question cached?"}
-    F -- Yes --> G["Reuse cache"]
-    F -- No --> H["Generate structured questions<br/>Gemini → Groq fallback"]
-    H --> I{"Valid and complete?"}
-    I -- No --> J["Return retryable unavailable state"]
-    I -- Yes --> K["Validate and cache"]
-    C --> L["Serve next question"]
-    G --> M["Commit session"]
-    K --> M
-    M --> L
-    L --> N["Capture answer, hint, skip,<br/>and timing signals"]
+    A["Daily review trigger"] --> B["Load due vocabulary count"]
+    B --> C{"Active daily session?"}
+    C -- Yes --> D["Restore persisted session"]
+    C -- No --> E["Select eligible due vocabulary"]
+    E --> F["Choose question types<br/>from goal and history"]
+    F --> G["Load versioned question cache"]
+    G --> H{"Questions missing?"}
+    H -- No --> L["Commit daily session"]
+    H -- Yes --> I["Generate question batches<br/>Gemini → Groq fallback"]
+    I --> J{"All outputs valid?"}
+    J -- No --> K["Return retryable unavailable state"]
+    J -- Yes --> L
+    D --> M["Serve next question"]
+    L --> M
+    M --> N["Capture answer, hint, skip,<br/>and timing signals"]
     N --> O["Grade, infer score 0–5,<br/>schedule 1–60 days"]
     O --> P{"Delayed retry eligible?"}
     P -- No --> Q{"Items remain?"}
@@ -91,11 +91,13 @@ flowchart TD
     S --> W["Audit + optional lesson/retest"]
     V --> W
     W --> Q
-    Q -- Yes --> L
-    Q -- No --> X["Complete summary + skill feedback"]
+    Q -- Yes --> M
+    Q -- No --> X["Complete daily summary<br/>+ skill feedback"]
 ```
 
-- Question content may be AI-generated; ordering, grading, scores, and schedules remain deterministic.
+- The session covers eligible due vocabulary and resumes after refresh or navigation.
+- Questions use a versioned AI cache; missing items are generated before commit.
+- Ordering, grading, scores, and schedules remain deterministic.
 - Invalid, unavailable, disabled, low-value, or over-budget AI calls use rule fallback.
 - One delayed re-test is allowed; applied interventions are audited.
 - No partial session is created when required questions are unavailable.
