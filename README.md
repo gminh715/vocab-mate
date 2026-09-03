@@ -91,42 +91,42 @@ The News Ingestion Pipeline discovers, deduplicates, sanitizes, tokenizes, and l
 ```mermaid
 flowchart TD
     subgraph Discovery["1. Discovery & Fetching"]
-        A["Ingestion Trigger<br/>(Admin UI / Scheduled API Sync)"] --> B["News Source Gateway<br/>(The Guardian Open Platform API)"]
-        B --> C["Fetch Metadata & Raw Article Payloads<br/>(Bounded Batch: 1-10 articles)"]
+        A["Ingestion Trigger<br/>Admin UI or Scheduled API Sync"] --> B["News Source Gateway<br/>The Guardian Open Platform API"]
+        B --> C["Fetch Metadata & Raw Article Payloads<br/>Batch Limit: 1-10 articles"]
     end
 
     subgraph Normalization["2. Normalization & Sanitization"]
-        C --> D["Duplicate Check via External ID<br/>(articles.external_id)"]
+        C --> D["Duplicate Check via External ID<br/>articles.external_id"]
         D -- "Duplicate Exists" --> D_SKIP["Skip Import & Log"]
-        D -- "Unique Article" --> E["HTML Sanitization & Extraction<br/>(HtmlSanitizerHelper whitelist)"]
-        E --> F["Generate Canonical Slug & Invariant Hash<br/>(SHA-256 Suffix)"]
-        F --> G["Resolve / Create Category<br/>(CategoriesService)"]
-        G --> H["Create Article Draft in DB<br/>(Status: DRAFT, contentVersion: 1)"]
+        D -- "Unique Article" --> E["HTML Sanitization & Extraction<br/>HtmlSanitizerHelper whitelist"]
+        E --> F["Generate Canonical Slug & Invariant Hash<br/>SHA-256 Suffix"]
+        F --> G["Resolve / Create Category<br/>CategoriesService"]
+        G --> H["Create Article Draft in DB<br/>Status: DRAFT, contentVersion: 1"]
     end
 
     subgraph Parsing["3. Sentence Parsing & Annotation"]
-        H --> I["Parse Reading Sentences<br/>(SentenceParserHelper)"]
-        I --> J["Annotate DOM with Sentence IDs<br/>(data-sentence-id)"]
-        J --> K["Persist ArticleSentence Records<br/>(Database Storage)"]
+        H --> I["Parse Reading Sentences<br/>SentenceParserHelper"]
+        I --> J["Annotate DOM with Sentence IDs<br/>data-sentence-id"]
+        J --> K["Persist ArticleSentence Records<br/>Database Storage"]
     end
 
     subgraph Analysis["4. Local NLP & CEFR Complexity Analysis"]
-        K --> L["Claim Concurrency Lock on Draft<br/>(claimArticleAnalysis)"]
-        L --> M["Local NLP Tokenization & Lemmatization<br/>(WinkNLP + wink-eng-lite-web-model)"]
-        M --> N["Classify CEFR Vocabulary Levels (A1-C2)<br/>(cefr-analyzer)"]
+        K --> L["Claim Concurrency Lock on Draft<br/>claimArticleAnalysis"]
+        L --> M["Local NLP Tokenization & Lemmatization<br/>WinkNLP + wink-eng-lite-web-model"]
+        M --> N["Classify CEFR Vocabulary Levels: A1-C2<br/>cefr-analyzer"]
         N --> O["Compute Overall Article CEFR Complexity"]
-        O --> P["Extract Candidate Terms & Tag DOM<br/>(Inject data-term-id via TermMarkerHelper)"]
+        O --> P["Extract Candidate Terms & Tag DOM<br/>Inject data-term-id via TermMarkerHelper"]
         P --> Q["Persist ArticleSentenceTerm Records"]
     end
 
     subgraph Publication["5. AI Enrichment & Publication Gate"]
-        Q --> R{"Publication Gate Validation<br/>(Sentences > 0, Terms tagged, CEFR evaluated)"}
+        Q --> R{"Publication Gate Validation<br/>Sentences > 0, Terms tagged, CEFR evaluated"}
         R -- "Checks Failed" --> R_FAIL["Retain Draft + Store Diagnostics"]
-        R -- "Checks Passed" --> S["Atomic Publication<br/>(Status: PUBLISHED)"]
-        S --> T["On-Demand / Lazy AI Term Enrichment<br/>(Triggered upon reader click or pre-cache)"]
+        R -- "Checks Passed" --> S["Atomic Publication<br/>Status: PUBLISHED"]
+        S --> T["On-Demand / Lazy AI Term Enrichment<br/>Triggered on reader click or pre-cache"]
         T --> U["Primary LLM: Gemini 2.5 Flash"]
         U -- "Quota / Rate Limit / Timeout" --> V["Fallback LLM: Groq Llama-3.3-70B"]
-        U -- "Success" --> W["Persist Contextual Translation, IPA & Examples<br/>(Vietnamese meaning, POS, CEFR)"]
+        U -- "Success" --> W["Persist Contextual Translation, IPA & Examples<br/>Vietnamese meaning, POS, CEFR"]
         V --> W
     end
 ```
@@ -161,57 +161,57 @@ The Tutor AI Agent orchestrates a daily adaptive vocabulary study loop. It deter
 ```mermaid
 flowchart TD
     subgraph SessionInit["1. Session Initialization & Daily Budgeting"]
-        A["Learner Starts / Resumes Session<br/>(POST /api/v1/tutor/session)"] --> B["Resolve Study Date<br/>(Timezone: Asia/Ho_Chi_Minh)"]
+        A["Learner Starts / Resumes Session<br/>POST /api/v1/tutor/session"] --> B["Resolve Study Date<br/>Timezone: Asia/Ho_Chi_Minh"]
         B --> C{"Active Session Exists Today?"}
-        C -- "Yes (ACTIVE)" --> D["Restore Persisted Session & Active Item"]
-        C -- "No / Fresh Day" --> E["Compute Session Budget<br/>(dailyStudyMinutes -> targetActivityCount)"]
-        E --> F["Allocate New Word Target<br/>(~20% of activities, min 1)"]
+        C -- "Yes - ACTIVE" --> D["Restore Persisted Session & Active Item"]
+        C -- "No - Fresh Day" --> E["Compute Session Budget<br/>dailyStudyMinutes to targetActivityCount"]
+        E --> F["Allocate New Word Target<br/>~20% of activities, min 1"]
         F --> G{"Any RELEARNING Words Due?"}
-        G -- "Yes" --> H["AI Generates Warmup Trivia Facts<br/>(Real-world facts embedding target words)"]
-        G -- "No" --> I["Create TutorSession Record<br/>(Status: ACTIVE)"]
+        G -- "Yes" --> H["AI Generates Warmup Trivia Facts<br/>Real-world facts embedding target words"]
+        G -- "No" --> I["Create TutorSession Record<br/>Status: ACTIVE"]
         H --> I
     end
 
     subgraph CandidateSelection["2. FSRS Priority Queue & Item Dispatch"]
-        I --> J["Fetch Prioritized Candidate Pool<br/>(Bounded Limit: 50 items)"]
+        I --> J["Fetch Prioritized Candidate Pool<br/>Bounded Limit: 50 items"]
         D --> J
-        J --> K["Priority Ordering:<br/>1. RELEARNING (due, nextReviewAt <= now)<br/>2. LEARNING (due, nextReviewAt <= now)<br/>3. REVIEW (due/overdue, oldest first)<br/>4. NEW (oldest savedAt first)"]
-        K --> L["Select Target Candidate<br/>(Deduplicate words already tested in this session)"]
+        J --> K["Priority Ordering:<br/>1. RELEARNING: due, nextReviewAt <= now<br/>2. LEARNING: due, nextReviewAt <= now<br/>3. REVIEW: due or overdue, oldest first<br/>4. NEW: oldest savedAt first"]
+        K --> L["Select Target Candidate<br/>Deduplicate words already tested in this session"]
         L --> M{"Map FSRS State to Question Type"}
-        M -- "NEW" --> N1["MULTIPLE_CHOICE<br/>(4 distinct options A-D)"]
-        M -- "LEARNING" --> N2["CONTEXTUAL_CLOZE<br/>(Sentence with '___' blank)"]
-        M -- "REVIEW" --> N3["TYPED_RECALL<br/>(Vietnamese prompt -> Type English word)"]
-        M -- "RELEARNING" --> N4["MICRO_LESSON_RETEST<br/>(Mini-story trivia + instant retest)"]
+        M -- "NEW" --> N1["MULTIPLE_CHOICE<br/>4 distinct options A-D"]
+        M -- "LEARNING" --> N2["CONTEXTUAL_CLOZE<br/>Sentence with blank ___"]
+        M -- "REVIEW" --> N3["TYPED_RECALL<br/>Vietnamese prompt to Type English word"]
+        M -- "RELEARNING" --> N4["MICRO_LESSON_RETEST<br/>Mini-story trivia + instant retest"]
     end
 
     subgraph AIGeneration["3. Bounded AI Question Generation"]
-        N1 & N2 & N3 & N4 --> O["Structured AI Generation Request<br/>(Zod & Strict JSON Schemas)"]
+        N1 & N2 & N3 & N4 --> O["Structured AI Generation Request<br/>Zod & Strict JSON Schemas"]
         O --> P["Primary Provider: Gemini 2.5 Flash"]
         P -- "Quota / Timeout / Error" --> Q["Fallback Provider: Groq Llama-3.3-70B"]
         P -- "Success" --> R["Parse & Segregate Payloads"]
         Q --> R
-        R --> S1["Public questionPayload<br/>(Prompt, options, cloze — NO correct answer)"]
-        R --> S2["Private gradingSpec<br/>(Stored server-side: answer, explanation, feedback)"]
-        S1 & S2 --> T["Persist TutorSessionItem<br/>(Status: PENDING)"]
+        R --> S1["Public questionPayload<br/>Prompt, options, cloze - No correct answer"]
+        R --> S2["Private gradingSpec<br/>Stored server-side: answer, explanation, feedback"]
+        S1 & S2 --> T["Persist TutorSessionItem<br/>Status: PENDING"]
     end
 
     subgraph Interaction["4. Learner Interaction & Answer Submission"]
-        T --> U["Learner Solves Question<br/>(Client records responseTimeMs, hintUsed)"]
-        U --> V["Submit Answer<br/>(POST /items/:itemId/answer)"]
+        T --> U["Learner Solves Question<br/>Client records responseTimeMs, hintUsed"]
+        U --> V["Submit Answer<br/>POST /items/:itemId/answer"]
     end
 
     subgraph Evaluation["5. Deterministic Grading & FSRS Scheduling"]
-        V --> W["Deterministic Server-Side Grading<br/>(Exact case-insensitive trim normalization)"]
-        W --> X["Compute FSRS Rating (ts-fsrs Grade):<br/>- Incorrect -> Again (1)<br/>- Hint used OR responseTime >= 30s -> Hard (2)<br/>- MULTIPLE_CHOICE correct -> Hard ceiling (2)<br/>- Fast TYPED_RECALL (<5s) & reps>=3 -> Easy (4)<br/>- Standard Correct -> Good (3)"]
-        X --> Y["Run FSRS Algorithm (ts-fsrs):<br/>- Recompute stability & difficulty<br/>- Calculate next interval (1-60+ days)<br/>- Assign nextReviewAt timestamp"]
+        V --> W["Deterministic Server-Side Grading<br/>Exact case-insensitive trim normalization"]
+        W --> X["Compute FSRS Rating ts-fsrs Grade:<br/>- Incorrect -> Again: Grade 1<br/>- Hint used OR responseTime >= 30s -> Hard: Grade 2<br/>- MULTIPLE_CHOICE correct -> Hard ceiling: Grade 2<br/>- Fast TYPED_RECALL under 5s & reps >= 3 -> Easy: Grade 4<br/>- Standard Correct -> Good: Grade 3"]
+        X --> Y["Run FSRS Algorithm ts-fsrs:<br/>- Recompute stability & difficulty<br/>- Calculate next interval: 1-60+ days<br/>- Assign nextReviewAt timestamp"]
         Y --> Z["Atomic Database Transaction:<br/>- Update UserVocabulary FSRS fields<br/>- Mark TutorSessionItem as ANSWERED<br/>- Store feedbackVi & accuracy"]
     end
 
     subgraph LoopCheck["6. Loop Condition & Completion"]
-        Z --> AA{"Session Target Reached?<br/>(answeredCount >= targetActivityCount)"}
-        AA -- "No (Activities Remain)" --> L
-        AA -- "Yes (Session Completed)" --> AB["Mark Session COMPLETED<br/>(completedAt = now)"]
-        AB --> AC["Generate Summary Statistics<br/>(Accuracy %, Words Learned, Retention, Streak)"]
+        Z --> AA{"Session Target Reached?<br/>answeredCount >= targetActivityCount"}
+        AA -- "No - Activities Remain" --> L
+        AA -- "Yes - Session Completed" --> AB["Mark Session COMPLETED<br/>completedAt = now"]
+        AB --> AC["Generate Summary Statistics<br/>Accuracy %, Words Learned, Retention, Streak"]
     end
 ```
 
