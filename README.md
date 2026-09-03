@@ -5,8 +5,12 @@
 [![Frontend](https://img.shields.io/badge/Frontend-React%2019%20%7C%20Vite%20%7C%20MUI-61dafb?style=flat-square&logo=react)](https://github.com/gminh715/vocab-mate-frontend)
 [![Backend](https://img.shields.io/badge/Backend-NestJS%2011%20%7C%20Prisma%207%20%7C%20PostgreSQL-e0234e?style=flat-square&logo=nestjs)](https://github.com/gminh715/vocab-mate-backend)
 [![Algorithm](https://img.shields.io/badge/Algorithm-FSRS--4.5%20Spaced%20Repetition-4caf50?style=flat-square)](https://github.com/open-spaced-repetition/fsrs4anki)
-[![AI Providers](https://img.shields.io/badge/AI%20Providers-Gemini%202.5%20%7C%20Groq%20Llama--3-ff6f00?style=flat-square&logo=google)](https://ai.google.dev/)
+[![AI Providers](https://img.shields.io/badge/AI%20Providers-Gemini%203.5%20Flash--Lite%20%7C%20Groq%20GPT--OSS--20B-ff6f00?style=flat-square&logo=google)](https://ai.google.dev/)
 [![License](https://img.shields.io/badge/License-Private%20%2F%20Unlicensed-gray?style=flat-square)](#-license)
+
+🔗 **GitHub Repositories**:
+- 🌐 **Frontend**: [https://github.com/gminh715/vocab-mate-frontend](https://github.com/gminh715/vocab-mate-frontend)
+- ⚙️ **Backend**: [https://github.com/gminh715/vocab-mate-backend](https://github.com/gminh715/vocab-mate-backend)
 
 ---
 
@@ -48,6 +52,9 @@ Learners read authentic articles, tap unfamiliar words directly within sentences
 
 The system is structured as a clean full-stack architecture comprising a React frontend client and a NestJS backend server:
 
+- 🌐 **Frontend Repo**: [https://github.com/gminh715/vocab-mate-frontend](https://github.com/gminh715/vocab-mate-frontend)
+- ⚙️ **Backend Repo**: [https://github.com/gminh715/vocab-mate-backend](https://github.com/gminh715/vocab-mate-backend)
+
 ```text
 vocab-mate/
 ├── vocab-mate-frontend/     # React 19 + Vite + Material UI single-page application
@@ -56,10 +63,10 @@ vocab-mate/
 
 ### Repository Breakdown
 
-| Repository | Tech Stack | Responsibilities |
-| :--- | :--- | :--- |
-| **Frontend** (`vocab-mate-frontend`) | React 19, Vite, TypeScript, Material UI 9, TanStack Query 5 | Responsive UI, distraction-free article reader with CEFR word highlights, contextual term drawer, interactive tutor session cards, streak calendars, FSRS memory distribution analytics, and client state caching. |
-| **Backend** (`vocab-mate-backend`) | NestJS 11, TypeScript, Prisma 7, PostgreSQL, WinkNLP, FSRS-4.5 | Core REST API (`/api/v1`), JWT authentication (in-memory access + HttpOnly cookie refresh), Guardian news ingestion gateway, DOM sentence/term parsing, local NLP & CEFR evaluation, Cloudinary media storage, FSRS scheduling, and AI LLM agent orchestration (Gemini & Groq). |
+| Repository | GitHub Link | Tech Stack | Responsibilities |
+| :--- | :--- | :--- | :--- |
+| **Frontend** (`vocab-mate-frontend`) | [`gminh715/vocab-mate-frontend`](https://github.com/gminh715/vocab-mate-frontend) | React 19, Vite, TypeScript, Material UI 9, TanStack Query 5 | Responsive UI, distraction-free article reader with CEFR word highlights, contextual term drawer, interactive tutor session cards, streak calendars, FSRS memory distribution analytics, and client state caching. |
+| **Backend** (`vocab-mate-backend`) | [`gminh715/vocab-mate-backend`](https://github.com/gminh715/vocab-mate-backend) | NestJS 11, TypeScript, Prisma 7, PostgreSQL, WinkNLP, FSRS-4.5 | Core REST API (`/api/v1`), JWT authentication (in-memory access + HttpOnly cookie refresh), Guardian news ingestion gateway, DOM sentence/term parsing, local NLP & CEFR evaluation, Cloudinary media storage, FSRS scheduling, and AI LLM agent orchestration (Gemini & Groq). |
 
 ---
 
@@ -124,8 +131,8 @@ flowchart TD
         R -- "Checks Failed" --> R_FAIL["Retain Draft + Store Diagnostics"]
         R -- "Checks Passed" --> S["Atomic Publication<br/>Status: PUBLISHED"]
         S --> T["On-Demand / Lazy AI Term Enrichment<br/>Triggered on reader click or pre-cache"]
-        T --> U["Primary LLM: Gemini 2.5 Flash"]
-        U -- "Quota / Rate Limit / Timeout" --> V["Fallback LLM: Groq Llama-3.3-70B"]
+        T --> U["Primary LLM: Gemini 3.5 Flash-Lite"]
+        U -- "Quota / Rate Limit / Timeout" --> V["Fallback LLM: Groq openai/gpt-oss-20b"]
         U -- "Success" --> W["Persist Contextual Translation, IPA & Examples<br/>Vietnamese meaning, POS, CEFR"]
         V --> W
     end
@@ -148,7 +155,7 @@ flowchart TD
    - Identified vocabulary terms are stamped into the markup with `<span data-term-id="uuid">` and saved as `ArticleSentenceTerm` rows.
 6. **Lazy AI Enrichment**:
    - When a user inspects a term in the reader, NestJS calls `AiService.enrichContextualTerm()`.
-   - **Gemini 2.5 Flash** (with **Groq Llama-3.3-70B** as an automatic failover) enriches the term with IPA pronunciation, Vietnamese meaning specific to the sentence, contextual English definition, and two usage examples.
+   - **Gemini 3.5 Flash-Lite** (with **Groq openai/gpt-oss-20b** as an automatic failover) enriches the term with IPA pronunciation, Vietnamese meaning specific to the sentence, contextual English definition, and two usage examples.
 
 ---
 
@@ -186,8 +193,8 @@ flowchart TD
 
     subgraph AIGeneration["3. Bounded AI Question Generation"]
         N1 & N2 & N3 & N4 --> O["Structured AI Generation Request<br/>Zod & Strict JSON Schemas"]
-        O --> P["Primary Provider: Gemini 2.5 Flash"]
-        P -- "Quota / Timeout / Error" --> Q["Fallback Provider: Groq Llama-3.3-70B"]
+        O --> P["Primary Provider: Gemini 3.5 Flash-Lite"]
+        P -- "Quota / Timeout / Error" --> Q["Fallback Provider: Groq openai/gpt-oss-20b"]
         P -- "Success" --> R["Parse & Segregate Payloads"]
         Q --> R
         R --> S1["Public questionPayload<br/>Prompt, options, cloze - No correct answer"]
@@ -261,7 +268,7 @@ flowchart TD
 | **NLP Engine** | [WinkNLP](https://winkjs.org/) | In-memory English tokenization, lemmatization, and POS tagging |
 | **CEFR Scoring** | [`cefr-analyzer`](https://www.npmjs.com/package/cefr-analyzer) | Lexical difficulty classification and overall article readability scoring |
 | **Spaced Repetition**| [`ts-fsrs`](https://github.com/open-spaced-repetition/ts-fsrs) | Free Spaced Repetition Scheduler algorithm implementation |
-| **AI Providers** | [Google Gemini 2.5 Flash](https://ai.google.dev/) + [Groq](https://groq.com/) | Primary structured LLM with high-speed Llama-3.3-70B failover fallback |
+| **AI Providers** | [Google Gemini](https://ai.google.dev/) (`gemini-3.5-flash-lite`) + [Groq](https://groq.com/) (`openai/gpt-oss-20b`) | Primary structured LLM with high-speed strict structured output failover fallback |
 | **Media Storage** | [Cloudinary](https://cloudinary.com/) + [Multer](https://github.com/expressjs/multer) | Cloud media storage for user profile avatar uploads |
 | **Security & Headers**| [Helmet](https://helmetjs.github.io/) + [Throttler](https://docs.nestjs.com/security/rate-limiting) | Security headers, strict CORS, and API rate limiting |
 | **API Documentation**| [Swagger / OpenAPI](https://swagger.io/) | Auto-generated interactive documentation at `/api/docs` |
@@ -337,8 +344,11 @@ Ensure the following tools are installed on your system:
 
 ### 1. Backend Setup (NestJS)
 
+> **Repository**: [https://github.com/gminh715/vocab-mate-backend](https://github.com/gminh715/vocab-mate-backend)
+
 ```bash
-# Navigate to backend directory
+# Clone repository or navigate to backend directory
+# git clone https://github.com/gminh715/vocab-mate-backend.git
 cd vocab-mate-backend
 
 # Install dependencies
@@ -368,8 +378,11 @@ Swagger interactive API documentation will be accessible at: `http://localhost:3
 
 ### 2. Frontend Setup (React + Vite)
 
+> **Repository**: [https://github.com/gminh715/vocab-mate-frontend](https://github.com/gminh715/vocab-mate-frontend)
+
 ```bash
-# Open a new terminal and navigate to frontend directory
+# Open a new terminal and clone repository or navigate to frontend directory
+# git clone https://github.com/gminh715/vocab-mate-frontend.git
 cd vocab-mate-frontend
 
 # Install dependencies
@@ -408,9 +421,9 @@ JWT_REFRESH_EXPIRES_IN=7d
 
 # AI Providers
 GEMINI_API_KEY="AIzaSy..."
-GEMINI_MODEL="gemini-2.5-flash"
+GEMINI_MODEL="gemini-3.5-flash-lite"
 GROQ_API_KEY="gsk_..."
-GROQ_MODEL="llama-3.3-70b-versatile"
+GROQ_MODEL="openai/gpt-oss-20b"
 
 # External Sources
 GUARDIAN_API_KEY="your-guardian-api-key"
