@@ -52,9 +52,6 @@ Learners read authentic articles, tap unfamiliar words directly within sentences
 
 The system is structured as a clean full-stack architecture comprising a React frontend client and a NestJS backend server:
 
-- 🌐 **Frontend Repo**: [https://github.com/gminh715/vocab-mate-frontend](https://github.com/gminh715/vocab-mate-frontend)
-- ⚙️ **Backend Repo**: [https://github.com/gminh715/vocab-mate-backend](https://github.com/gminh715/vocab-mate-backend)
-
 ```text
 vocab-mate/
 ├── vocab-mate-frontend/     # React 19 + Vite + Material UI single-page application
